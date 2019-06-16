@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta charset="UTF-8"/>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<style>
+.axis line, .axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.path {
+  fill: none;
+  stroke: steelblue;
+  stroke-opacity: .7;
+}
+</style>
+</head>
+<body>
+
+<script>
+var margin = {top: 20, right: 120, bottom: 20, left: 120};
+var width = 960 - margin.left - margin.right;
+var height = 720 - margin.top - margin.bottom;
+
+var svg = d3.select("body")
+			.append("svg")
+			.attr("width",width+margin.left+margin.right)
+			.attr("height",height+margin.top+margin.bottom)
+			.append("g")
+			.attr("transform","translate("+margin.left+","+margin.top+")");
+
+
+d3.csv("data.csv",function(error,data){
+	if(error)
+		throw error;
+	
+	var dimensions = d3.keys(data[0]).filter(d => d!="City");
+	
+	console.log(dimensions);
+	
+	var xScale = d3.scale.ordinal()
+						 .domain(dimensions)
+						 .rangePoints([0,width]);
+	
+	var yScale = {};
+	dimensions.forEach(function(d){
+		yScale[d] = d3.scale.linear()
+							.domain(d3.extent(data,e => +e[d]))
+							.range([height,0]);
+	});
+	
+	//为每一个dimension创建一个组
+	var dimension = svg.selectAll("g")
+					   .data(dimensions)
+					   .enter()
+					   .append("g")
+					   .attr("transform",d => "translate("+xScale(d)+",0)");
+	console.log(xScale("Consumer Price+Rent"));
+	//绘制坐标轴
+	var axis = d3.svg.axis()
+					 .orient("left");
+	
+	dimension.append("g")
+			 .attr("class","axis")
+			 .each(function(d){
+				d3.select(this).call(axis.scale(yScale[d]));
+			 })
+			 .append("text")
+			 .attr("text-anchor","middle")
+			 .attr("y",-9)
+			 .text(d =>d);
+
+	//绘制线条
+	var line = d3.svg.line();
+					 
+	var lines = svg.append("g")
+				   .selectAll("path")
+				   .data(data)
+				   .enter()
+				   .append("path")
+				   .attr("class","path")
+				   .attr("d",function(d){
+						return line(dimensions.map(function(p) { return [xScale(p), yScale[p](d[p])]; }));
+					});
+
+});
+
+
+</script>
+</body>
+
+
+</html>
